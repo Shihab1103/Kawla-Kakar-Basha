@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Supabase Client JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg:#F6F2E7; --surface:#FFFFFF; --ink:#1F3D3B; --ink-soft:#5B7570;
@@ -32,7 +34,7 @@
   .brand h1{font-size:16px;margin:0;line-height:1.2;}
   .brand small{color:var(--ink-soft);font-size:12px;}
   .top-actions{display:flex;align-items:center;gap:6px;}
-  .icon-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--ink);}
+  .icon-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 10px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--ink);font-family:inherit;}
   .icon-btn:hover{border-color:var(--accent);}
   input[type=month]{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 8px;color:var(--ink);font-family:inherit;font-size:13px;}
 
@@ -111,6 +113,11 @@
   .balance-card{display:flex;justify-content:space-between;align-items:center;}
   .balance-card .amt{font-size:17px;}
 
+  .admin-only { display: none !important; }
+  body.is-admin .admin-only { display: inline-flex !important; }
+  body.is-admin div.admin-only { display: block !important; }
+  body.is-admin div.admin-only-flex { display: flex !important; }
+
   #printArea{display:none;}
 
   @page { size: A4; margin: 15mm; }
@@ -156,6 +163,7 @@
     </div>
     <div class="top-actions">
       <input type="month" id="monthPicker">
+      <button class="icon-btn" id="adminAuthBtn" onclick="toggleAdminAuth()" title="Admin Login">🔑 Login</button>
       <button class="icon-btn" id="langBtn" title="Language">বাং</button>
       <button class="icon-btn" id="themeBtn" title="Dark mode">🌙</button>
     </div>
@@ -171,7 +179,7 @@
   <!-- MEMBERS -->
   <section class="tab" id="tab-members">
     <div class="row"><h2 class="sec-title" style="margin:0"><span>👥</span><span id="memTitle">সদস্য ব্যবস্থাপনা</span></h2>
-      <button class="btn" onclick="openMemberModal()">＋ <span id="addMemBtn">সদস্য যোগ</span></button>
+      <button class="btn admin-only" onclick="openMemberModal()">＋ <span id="addMemBtn">সদস্য যোগ</span></button>
     </div>
     <div id="memberList" style="margin-top:12px;"></div>
   </section>
@@ -179,13 +187,13 @@
   <!-- EXPENSES -->
   <section class="tab" id="tab-expenses">
     <div class="row"><h2 class="sec-title" style="margin:0"><span>💸</span><span id="expTitle">খরচ</span></h2>
-      <button class="btn" onclick="openExpenseModal()">＋ <span id="addExpBtn">খরচ যোগ</span></button>
+      <button class="btn admin-only" onclick="openExpenseModal()">＋ <span id="addExpBtn">খরচ যোগ</span></button>
     </div>
     <div class="table-wrap" style="margin-top:12px;">
       <table>
         <thead><tr>
           <th id="thDate">তারিখ</th><th id="thCat">ধরন</th><th id="thDesc">বিবরণ</th>
-          <th id="thAmt">টাকা</th><th id="thPaid">পরিশোধ</th><th></th>
+          <th id="thAmt">টাকা</th><th id="thPaid">পরিশোধ</th><th class="admin-only"></th>
         </tr></thead>
         <tbody id="expenseTbody"></tbody>
       </table>
@@ -198,7 +206,7 @@
 
     <div class="card" id="quickMealCard" style="margin-bottom:14px;">
       <div class="row"><h3 id="quickTodayLbl" style="margin:0;">আজকের মিল (দ্রুত এন্ট্রি)</h3>
-        <button class="btn ghost sm" onclick="copyYesterday()" id="copyYestBtn">↩️ গতকালের মতো</button>
+        <button class="btn ghost sm admin-only" onclick="copyYesterday()" id="copyYestBtn">↩️ গতকালের মতো</button>
       </div>
       <div id="quickMealList" style="margin-top:8px;"></div>
     </div>
@@ -232,12 +240,12 @@
       <h3 id="backupLabel">ব্যাকআপ ও পুনরুদ্ধার</h3>
       <div class="row" style="margin-top:8px;gap:8px;">
         <button class="btn ghost" onclick="doBackup()">⬇️ <span id="backupBtn">ব্যাকআপ (JSON)</span></button>
-        <label class="btn ghost" style="cursor:pointer;">⬆️ <span id="restoreBtn">পুনরুদ্ধার</span>
+        <label class="btn ghost admin-only" style="cursor:pointer;">⬆️ <span id="restoreBtn">পুনরুদ্ধার</span>
           <input type="file" accept="application/json" style="display:none" onchange="doRestore(event)">
         </label>
       </div>
     </div>
-    <div class="card">
+    <div class="card admin-only">
       <h3 id="dangerLabel">সব ডেটা মুছুন</h3>
       <button class="btn danger" style="margin-top:8px;" onclick="resetAll()"><span id="resetBtn">রিসেট করুন</span></button>
     </div>
@@ -295,6 +303,14 @@
 <div id="printArea"></div>
 
 <script>
+/* ---------------- SUPABASE CONFIG ---------------- */
+const SUPABASE_URL = "https://qpgtxydhkxdrcoqpknlh.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_CH01vQ..."; // আপনার Publishable Key টি এখানে বসানো আছে
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let isAdmin = false;
+
 /* ---------------- i18n ---------------- */
 const CAT_KEYS = ["market","electricity","gas","water","internet","other"];
 const T = {
@@ -341,36 +357,61 @@ function t(k){ const d=T[state.settings.lang]; return d[k] ?? T.bn[k] ?? k; }
 let state = { members:[], expenses:[], meals:{}, settings:{lang:'bn', theme:'light'} };
 let selectedMonth = new Date().toISOString().slice(0,7);
 let pieChartObj=null, barChartObj=null;
-const STORE_KEY = 'house_expense_data_v1';
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
 async function loadState(){
   try{
-    let val = null;
-    if (window.storage && window.storage.get) {
-      const res = await window.storage.get(STORE_KEY, false);
-      val = res ? res.value : null;
-    } else {
-      val = localStorage.getItem(STORE_KEY);
+    const { data, error } = await db.from('app_state').select('*').eq('id', 1).single();
+    if(data && data.state_data){
+      state = Object.assign({ members:[], expenses:[], meals:{}, settings:{lang:'bn', theme:'light'} }, data.state_data);
     }
-    if(val){ 
-      const parsed = JSON.parse(val); 
-      state = Object.assign({ members:[], expenses:[], meals:{}, settings:{lang:'bn', theme:'light'} }, parsed); 
-    }
-  }catch(e){ console.error('Load error:', e); }
+  }catch(e){ console.error('Cloud load error:', e); }
   renderAll();
 }
 
 async function saveState(){
   try{ 
-    const str = JSON.stringify(state);
-    if (window.storage && window.storage.set) {
-      await window.storage.set(STORE_KEY, str, false);
-    } else {
-      localStorage.setItem(STORE_KEY, str);
+    if(!isAdmin) return;
+    await db.from('app_state').upsert({ id: 1, state_data: state });
+  }catch(e){ console.error('Cloud save error:', e); }
+}
+
+/* ---------------- AUTHENTICATION ---------------- */
+async function checkAuthStatus() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    isAdmin = true;
+    document.body.classList.add('is-admin');
+    document.getElementById('adminAuthBtn').innerText = '🚪 Logout';
+  } else {
+    isAdmin = false;
+    document.body.classList.remove('is-admin');
+    document.getElementById('adminAuthBtn').innerText = '🔑 Login';
+  }
+}
+
+async function toggleAdminAuth() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    await db.auth.signOut();
+    alert('লগআউট সম্পন্ন হয়েছে!');
+    checkAuthStatus();
+    renderAll();
+  } else {
+    const email = prompt('এডমিন ইমেইল লিখুন:');
+    const password = prompt('পাসওয়ার্ড লিখুন:');
+    if (email && password) {
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      if (error) {
+        alert('লগইন ব্যর্থ হয়েছে! ভুল ইমেইল বা পাসওয়ার্ড।');
+      } else {
+        alert('এডমিন লগইন সফল হয়েছে!');
+        checkAuthStatus();
+        renderAll();
+      }
     }
-  }catch(e){ console.error('Save error:', e); }
+  }
 }
 
 /* ---------------- helpers ---------------- */
@@ -411,20 +452,15 @@ function categoryTotals(m){
   return out;
 }
 
-/* 🌟 কেন্দ্রীয় মেস ক্যালকুলেশন লজিক 🌟 */
 function getMonthStats(m){
   const exps = monthExpenses(m);
   const totalExp = exps.reduce((s,e)=>s+Number(e.amount||0),0);
-  
-  // শুধুমাত্র 'বাজার' খরচ মিল খরচের জন্য আলাদা করা হলো
   const marketExp = exps.filter(e=>e.category==='market').reduce((s,e)=>s+Number(e.amount||0),0);
-  const otherExp = totalExp - marketExp; // বিদ্যুৎ, গ্যাস ইত্যাদি ফিক্সড খরচ
-  
+  const otherExp = totalExp - marketExp;
   const totalMeal = monthMealTotal(m);
-  const perMeal = totalMeal > 0 ? marketExp / totalMeal : 0; // প্রতি মিল খরচ
-  
+  const perMeal = totalMeal > 0 ? marketExp / totalMeal : 0;
   const memCount = state.members.length;
-  const fixedPerMem = memCount > 0 ? otherExp / memCount : 0; // ফিক্সড খরচের মাথাপিছু অংশ
+  const fixedPerMem = memCount > 0 ? otherExp / memCount : 0;
 
   return { exps, totalExp, marketExp, otherExp, totalMeal, perMeal, fixedPerMem };
 }
@@ -467,7 +503,6 @@ function renderMonthLabel(){
 
 function renderDashboard(){
   const stats = getMonthStats(selectedMonth);
-  
   const cards = [
     {icon:'💰', label:t('stTotalExp'), val:fmtMoney(stats.totalExp)},
     {icon:'🍚', label:t('stTotalMeal'), val:fmtNum(stats.totalMeal)},
@@ -484,11 +519,8 @@ function renderDashboard(){
     settleEl.innerHTML = state.members.map(mem=>{
       const meals = memberMealTotal(selectedMonth, mem.id);
       const paidAmt = memberPaidTotal(selectedMonth, mem.id);
-      
-      // খরচ = (নিজস্ব মিল * বাজার ভিত্তিক মিল রেট) + (অন্যান্য খরচের সমান ভাগ)
       const totalCost = (meals * stats.perMeal) + stats.fixedPerMem;
       const balance = paidAmt - totalCost;
-      
       const tag = balance>0.5 ? t('gets') : (balance<-0.5 ? t('owes') : t('settled'));
       const cls = balance>0.5 ? 'amt-in' : (balance<-0.5 ? 'amt-out' : '');
       return `<div class="card balance-card">
@@ -508,7 +540,7 @@ function renderMembers(){
     <div class="member-chip">
       <div class="info"><div class="avatar">${escapeHtml(m.name.charAt(0).toUpperCase())}</div>
         <div>${escapeHtml(m.name)}</div></div>
-      <div class="actions-cell">
+      <div class="actions-cell admin-only">
         <button onclick="openMemberModal('${m.id}')" title="${t('edit')}">${t('edit')}</button>
         <button onclick="deleteMember('${m.id}')" title="${t('del')}">${t('del')}</button>
       </div>
@@ -527,7 +559,7 @@ function renderExpenses(){
       <td>${escapeHtml(e.desc||'')}</td>
       <td class="num">${fmtMoney(e.amount)}</td>
       <td>${payer? escapeHtml(payer.name): '—'}</td>
-      <td class="actions-cell">
+      <td class="actions-cell admin-only">
         <button onclick="openExpenseModal('${e.id}')">${t('edit')}</button>
         <button onclick="deleteExpense('${e.id}')">${t('del')}</button>
       </td>
@@ -554,12 +586,14 @@ function renderQuickMeal(){
     const val = (state.meals[today] && state.meals[today][m.id]!=null) ? state.meals[today][m.id] : 0;
     const opts = [0,1,2,3].map(n=>{
       const active = Number(val)===n;
-      return `<button class="btn sm ${active?'':'ghost'}" onclick="setMeal('${today}','${m.id}',${n})">${state.settings.lang==='bn'?bnDigits(n):n}</button>`;
+      const disabled = !isAdmin ? 'disabled' : '';
+      return `<button class="btn sm ${active?'':'ghost'}" ${disabled} onclick="setMeal('${today}','${m.id}',${n})">${state.settings.lang==='bn'?bnDigits(n):n}</button>`;
     }).join('');
     return `<div class="quick-row"><div>${escapeHtml(m.name)}</div><div class="quick-opts">${opts}</div></div>`;
   }).join('');
 }
 function copyYesterday(){
+  if(!isAdmin) return;
   const today = todayStr();
   const yd = new Date(); yd.setDate(yd.getDate()-1);
   const yStr = yd.toISOString().slice(0,10);
@@ -567,6 +601,7 @@ function copyYesterday(){
   saveState(); renderDashboard(); renderReports(); renderMeals();
 }
 function stepMeal(date, memberId, delta){
+  if(!isAdmin) return;
   const cur = (state.meals[date] && state.meals[date][memberId]!=null) ? Number(state.meals[date][memberId]) : 0;
   setMeal(date, memberId, Math.max(0, cur+delta));
 }
@@ -590,10 +625,11 @@ function renderMeals(){
     const cells = state.members.map((m,idx)=>{
       const val = (state.meals[d] && state.meals[d][m.id]!=null) ? Number(state.meals[d][m.id]) : 0;
       rowTotal += val; memberTotals[idx] += val;
+      const disabled = !isAdmin ? 'disabled' : '';
       return `<td class="meal-cell"><div class="stepper">
-          <button onclick="stepMeal('${d}','${m.id}',-1)">−</button>
-          <input type="number" min="0" step="1" value="${val}" onchange="setMeal('${d}','${m.id}',this.value)">
-          <button onclick="stepMeal('${d}','${m.id}',1)">+</button>
+          <button ${disabled} onclick="stepMeal('${d}','${m.id}',-1)">−</button>
+          <input type="number" min="0" step="1" ${disabled} value="${val}" onchange="setMeal('${d}','${m.id}',this.value)">
+          <button ${disabled} onclick="stepMeal('${d}','${m.id}',1)">+</button>
         </div></td>`;
     }).join('');
     grandTotal += rowTotal;
@@ -659,6 +695,7 @@ document.getElementById('themeBtn').addEventListener('click', ()=>{ state.settin
 function closeModal(id){ document.getElementById(id).classList.remove('active'); }
 
 function openMemberModal(id){
+  if(!isAdmin) return;
   document.getElementById('memberId').value = id||'';
   const mem = id? state.members.find(m=>m.id===id) : null;
   document.getElementById('memberName').value = mem? mem.name : '';
@@ -666,6 +703,7 @@ function openMemberModal(id){
   document.getElementById('memberModalBg').classList.add('active');
 }
 function saveMember(){
+  if(!isAdmin) return;
   const id = document.getElementById('memberId').value;
   const name = document.getElementById('memberName').value.trim();
   if(!name){ alert(t('fillName')); return; }
@@ -675,7 +713,7 @@ function saveMember(){
 }
 
 function deleteMember(id){
-  if(!confirm(t('confirmDel'))) return;
+  if(!isAdmin || !confirm(t('confirmDel'))) return;
   state.members = state.members.filter(m=>m.id!==id);
   Object.keys(state.meals).forEach(date => {
     if(state.meals[date][id] !== undefined) {
@@ -686,6 +724,7 @@ function deleteMember(id){
 }
 
 function openExpenseModal(id){
+  if(!isAdmin) return;
   const paidSel = document.getElementById('expPaidBy');
   paidSel.innerHTML = state.members.map(m=>`<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
   document.getElementById('expenseId').value = id||'';
@@ -699,6 +738,7 @@ function openExpenseModal(id){
   document.getElementById('expenseModalBg').classList.add('active');
 }
 function saveExpense(){
+  if(!isAdmin) return;
   const id = document.getElementById('expenseId').value;
   const date = document.getElementById('expDate').value;
   const category = document.getElementById('expCat').value;
@@ -711,12 +751,13 @@ function saveExpense(){
   saveState(); renderAll(); closeModal('expenseModalBg');
 }
 function deleteExpense(id){
-  if(!confirm(t('confirmDel'))) return;
+  if(!isAdmin || !confirm(t('confirmDel'))) return;
   state.expenses = state.expenses.filter(e=>e.id!==id);
   saveState(); renderAll();
 }
 
 function setMeal(date, memberId, value){
+  if(!isAdmin) return;
   const v = Math.max(0, parseFloat(value)||0);
   if(!state.meals[date]) state.meals[date] = {};
   state.meals[date][memberId] = v;
@@ -841,6 +882,7 @@ function doBackup(){
   a.click();
 }
 function doRestore(evt){
+  if(!isAdmin) return;
   const file = evt.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = () => {
@@ -854,13 +896,23 @@ function doRestore(evt){
   evt.target.value = '';
 }
 function resetAll(){
-  if(!confirm(t('confirmReset'))) return;
+  if(!isAdmin || !confirm(t('confirmReset'))) return;
   state = {members:[], expenses:[], meals:{}, settings: state.settings};
   saveState(); renderAll();
 }
 
-/* ---------------- init ---------------- */
-loadState();
+/* ---------------- INIT & AUTO REFRESH ---------------- */
+async function initApp() {
+  await checkAuthStatus();
+  await loadState();
+  
+  // প্রতি ৫ সেকেন্ড পর পর ক্লাউড ডাটা রিফ্রেশ করবে
+  setInterval(() => {
+    loadState();
+  }, 5000);
+}
+
+initApp();
 </script>
 </body>
 </html>
